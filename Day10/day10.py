@@ -33,20 +33,19 @@ def dayTen():
 
 def dayTen2():
     res = 0
+
     #read
     with open("Day10/10.txt") as file:
         for line in file:
             buttons = []
             jolts = []
             arr = line.rstrip().split(' ')
-
-            
             for i in range(1,len(arr)-1):
                 buttons.append( set([int(x) for x in arr[i][1:-1].split(',')]) )
 
             jolts = [int(x) for x in arr[-1][1:-1].split(',')]
             print(buttons,jolts)
-
+            
     return res
 
 def main():
