@@ -1,3 +1,4 @@
+from collections import deque
 from typing import *
 
 def dayNine():
@@ -20,75 +21,68 @@ def dayNine():
 
 def dayNine2():
     coord = []
-    allowed = set()
-    maxI,maxJ = 0,0
+
     #read
-    with open("Day9/9.txt") as file:
+    with open("Day9/9_2.txt") as file:
         for line in file:
             j,i = [int(x) for x in line.strip().split(',')]
             coord.append( (i,j) )
-            allowed.add( (i,j) )
-            maxI = max(maxI,i)
-            maxJ = max(maxJ,j)
-    n = len(coord)
 
-    arr = [ ['.']*(maxJ+3) for _ in range(maxI+2) ]
-    for i,j in coord:
-        arr[i][j] = '#'
+    xs = sorted({x for x,_ in coord})
+    ys = sorted({y for _,y in coord})
 
-    start = ()
-    n = len(coord)
-    for i in range(n):
-        for j in range(i+1,n):
-            x1,y1 = coord[i]
-            x2,y2 = coord[j]
-            
-            if x1 == x2:
-                big = max(y1,y2)
-                small = min(y1,y2)
-                for k in range(small+1,big):
-                    if start == ():
-                        start = (x1,k)
-                    arr[x1][k] = 'X'
-            elif y1 == y2:
-                big = max(x1,x2)
-                small = min(x1,x2)
-                for k in range(small+1,big):
-                    if start == ():
-                        start = (k,y1)
-                    arr[k][y1] = 'X'
-
-    #fill inside without arr
-    directions = [(-1,0),(1,0),(0,-1),(0,1)]
-    inside = False
-    for dx,dy in directions:
-        s1,s2 = start[0]+dx,start[1]+dy
-
-        for fullx,fully in directions:
-            inside = True
-            nx,ny = s1,s2
-            while True:
-                nx,ny = nx+fullx,ny+fully
-
-                if 0<=nx<maxI+1 and 0<=ny<maxJ+1:
-                    if (nx,ny) in coord:
-                        print("found")
-                        break
-                else:
-                    inside = False
-                    break
-
-            if inside == False:
-                break
+    grid = [ [0]*(len(ys)*2-1) for _ in range(len(xs)*2-1) ]
+    m,n = len(grid),len(grid[0])
+    #compress coords
+    for (x1,y1),(x2,y2) in zip(coord,coord[1:]+coord[:1]):
+        cx1,cx2 = sorted( [xs.index(x1)*2, xs.index(x2)*2] )
+        cy1,cy2 = sorted( [ys.index(y1)*2, ys.index(y2)*2] )
+        for cx in range(cx1,cx2+1):
+            for cy in range(cy1,cy2+1):
+                grid[cx][cy] = 1
     
-    print(nx,ny)
-            
-    #check if all 4 corners are in allowed
-    # x1,y1 x2,y1 x1,y2, x2,y2
+    outside = {(-1,-1)}
+    q = deque(outside)
+    #flood fill
+    while q:
+        tx,ty = q.popleft()
+        for nx,ny in [ (tx-1,ty),(tx+1,ty),(tx,ty-1),(tx,ty+1) ]:
+            if nx < -1 or ny < -1 or nx > m or ny > n: continue
+            if 0 <= nx < m and 0 <= ny < n and grid[nx][ny] == 1: continue
+            if (nx,ny) in outside: continue
+            outside.add( (nx,ny) )
+            q.append( (nx,ny) )
+    
+    for x in range(m):
+        for y in range(n):
+            if (x,y) not in outside:
+                grid[x][y] = 1
+
+    #pre fix sum array
+    psa = [ [0]*len(row) for row in grid ]
+    for x in range(len(psa)):
+        for y in range(len(psa[0])):
+            left = psa[x-1][y] if x > 0 else 0
+            top = psa[x][y-1] if y > 0 else 0
+            topleft = psa[x-1][y-1] if x > 0 < y else 0
+            psa[x][y] = left+top-topleft+grid[x][y]
+
+    def valid(x1,y1,x2,y2):
+        cx1,cx2 = sorted( [xs.index(x1)*2, xs.index(x2)*2] )
+        cy1,cy2 = sorted( [ys.index(y1)*2, ys.index(y2)*2] )
+        left = psa[cx1-1][cy2] if cx1 > 0 else 0
+        top = psa[cx2][cy1-1] if cy1 > 0 else 0
+        topleft = psa[cx1-1][cy1-1] if cx1 > 0 < cy1 else 0
+        count = psa[cx2][cy2]-left-top+topleft
+        return count == (cx2-cx1+1)*(cy2-cy1+1)
+    
+    rectArea = [(abs(x1-x2)+1)*(abs(y1-y2)+1) for i,(x1,y1) in enumerate(coord) for x2,y2 in coord[:i] if valid(x1,y1,x2,y2)]
+    return max(rectArea)
+
 
 def main():
     print("Hallo")
-    #print(dayNine(), "ist die Lösung von Teil 1")
+    print(dayNine(), "ist die Lösung von Teil 1")
     print(dayNine2(), "ist die Lösung von Teil 2")
      
 if __name__=="__main__":
